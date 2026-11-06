@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบจัดการผู้สมัคร (สำหรับเจ้าหน้าที่) - วิทยาลัยอาชีวศึกษา</title>
+  <?!= include('css'); ?>
+  <!-- Chart.js CDN for statistics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <!-- Admin Login Screen (Hidden when authenticated) -->
+  <div id="loginScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6 text-center border border-slate-100">
+      <div class="w-16 h-16 bg-blue-100 text-blue-900 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-inner">
+        <i class="fa-solid fa-user-shield"></i>
+      </div>
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900">เข้าสู่ระบบเจ้าหน้าที่</h2>
+        <p class="text-xs text-slate-500 mt-1">ระบบงานรับสมัครนักศึกษา วิทยาลัยอาชีวศึกษา</p>
+      </div>
+
+      <form id="loginForm" onsubmit="handleAdminLogin(event)" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            รหัส PIN เจ้าหน้าที่ (6 หลัก)
+          </label>
+          <input type="password" id="adminPin" maxlength="6" required placeholder="••••••"
+            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-center font-mono tracking-widest text-lg">
+          <p class="text-xs text-slate-400 mt-1 text-center">หากใช้อีเมล Google ที่กำหนดไว้ ระบบจะตรวจสอบให้อัตโนมัติ</p>
+        </div>
+
+        <button type="submit" id="loginBtn"
+          class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-3.5 px-4 rounded-xl shadow transition duration-200 flex items-center justify-center space-x-2 text-sm">
+          <i class="fa-solid fa-lock-open"></i>
+          <span>เข้าสู่ระบบ</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Main Dashboard Wrapper -->
+  <div id="adminApp" class="hidden min-h-screen flex flex-col">
+
+    <!-- Top Admin Header -->
+    <header class="bg-slate-900 text-white shadow sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-sm md:text-base leading-tight">ระบบรับสมัครนักศึกษา (หลังบ้าน)</h1>
+            <p class="text-xs text-slate-400">สถานะ: <span class="text-emerald-400 font-semibold" id="authUserInfo">-</span></p>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex items-center space-x-1 md:space-x-2">
+          <button onclick="switchTab('applicants')" id="tabBtnApplicants"
+            class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition bg-blue-600 text-white">
+            <i class="fa-solid fa-table-list mr-1"></i> รายชื่อผู้สมัคร
+          </button>
+          <button onclick="switchTab('dashboard')" id="tabBtnDashboard"
+            class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-300 hover:bg-slate-800">
+            <i class="fa-solid fa-chart-pie mr-1"></i> สถิติ
+          </button>
+          <button onclick="switchTab('export')" id="tabBtnExport"
+            class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-300 hover:bg-slate-800">
+            <i class="fa-solid fa-file-export mr-1"></i> ส่งออก ศธ.02
+          </button>
+          <a href="?page=register" target="_blank"
+            class="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition text-sm" title="เปิดหน้าฟอร์ม">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+      <!-- ========================================== -->
+      <!-- TAB 1: APPLICANTS MANAGEMENT TABLE -->
+      <!-- ========================================== -->
+      <section id="tabApplicants" class="space-y-4">
+        
+        <!-- Filter Bar -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 grid grid-cols-2 md:grid-cols-6 gap-3 text-xs md:text-sm">
+          <div>
+            <label class="block text-slate-500 font-medium mb-1">ปีการศึกษา</label>
+            <select id="filterYear" onchange="loadApplicantsTable()"
+              class="w-full px-2.5 py-2 rounded-lg border border-slate-300 bg-white">
+              <option value="2568">2568</option>
+              <option value="2569">2569</option>
+              <option value="">ทั้งหมด</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-500 font-medium mb-1">ระดับชั้น</label>
+            <select id="filterLevel" onchange="loadApplicantsTable()"
+              class="w-full px-2.5 py-2 rounded-lg border border-slate-300 bg-white">
+              <option value="">ทั้งหมด</option>
+              <option value="ปวช.">ปวช.</option>
+              <option value="ปวส.">ปวส.</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-500 font-medium mb-1">สาขาวิชา</label>
+            <select id="filterMajor" onchange="loadApplicantsTable()"
+              class="w-full px-2.5 py-2 rounded-lg border border-slate-300 bg-white">
+              <option value="">ทุกสาขาวิชา</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-500 font-medium mb-1">สถานะเอกสาร</label>
+            <select id="filterStatus" onchange="loadApplicantsTable()"
+              class="w-full px-2.5 py-2 rounded-lg border border-slate-300 bg-white">
+              <option value="">ทุกสถานะ</option>
+              <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+              <option value="เอกสารไม่ครบ">เอกสารไม่ครบ</option>
+              <option value="ผ่านการคัดเลือก">ผ่านการคัดเลือก</option>
+              <option value="มอบตัวแล้ว">มอบตัวแล้ว</option>
+            </select>
+          </div>
+
+          <div class="col-span-2">
+            <label class="block text-slate-500 font-medium mb-1">ค้นหา (รหัส/ชื่อ/เลขบัตร/เบอร์)</label>
+            <div class="relative">
+              <input type="text" id="filterSearch" placeholder="พิมพ์คำค้นหา..." onkeyup="debounceSearch()"
+                class="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-600">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Applicant Data Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-700" id="applicantCountText">พบข้อมูล 0 รายการ</span>
+            <button onclick="loadApplicantsTable()" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-1">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>รีเฟรช</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs md:text-sm">
+              <thead class="bg-slate-100 text-slate-700 border-b border-slate-200 font-bold uppercase text-[11px] tracking-wider">
+                <tr>
+                  <th class="px-4 py-3">รหัสสมัคร</th>
+                  <th class="px-4 py-3">ชื่อ - นามสกุล</th>
+                  <th class="px-4 py-3">ระดับ / สาขาวิชา</th>
+                  <th class="px-4 py-3">เกรด (GPAX)</th>
+                  <th class="px-4 py-3">เบอร์โทร</th>
+                  <th class="px-4 py-3 text-center">เอกสารแนบ</th>
+                  <th class="px-4 py-3 text-center">สถานะ</th>
+                  <th class="px-4 py-3 text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="applicantTableBody" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="8" class="text-center py-10 text-slate-400">กำลังโหลดข้อมูลผู้สมัคร...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: DASHBOARD STATISTICS (Chart.js) -->
+      <!-- ========================================== -->
+      <section id="tabDashboard" class="hidden space-y-6">
+        
+        <!-- Metric Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs text-slate-500 font-medium">ผู้สมัครทั้งหมด</span>
+            <h3 class="text-2xl md:text-3xl font-bold text-slate-800 mt-1" id="dashTotal">-</h3>
+            <span class="text-[11px] text-blue-600 font-medium mt-1 inline-block">ประจำปีการศึกษา</span>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-amber-200 bg-amber-50/30 shadow-sm">
+            <span class="text-xs text-amber-700 font-medium">รอตรวจสอบเอกสาร</span>
+            <h3 class="text-2xl md:text-3xl font-bold text-amber-700 mt-1" id="dashPending">-</h3>
+            <span class="text-[11px] text-amber-600 font-medium mt-1 inline-block">ต้องการการตรวจ</span>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-emerald-200 bg-emerald-50/30 shadow-sm">
+            <span class="text-xs text-emerald-700 font-medium">ผ่านการคัดเลือก</span>
+            <h3 class="text-2xl md:text-3xl font-bold text-emerald-700 mt-1" id="dashPassed">-</h3>
+            <span class="text-[11px] text-emerald-600 font-medium mt-1 inline-block">พร้อมมอบตัว</span>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-indigo-200 bg-indigo-50/30 shadow-sm">
+            <span class="text-xs text-indigo-700 font-medium">มอบตัวสำเร็จแล้ว</span>
+            <h3 class="text-2xl md:text-3xl font-bold text-indigo-700 mt-1" id="dashEnrolled">-</h3>
+            <span class="text-[11px] text-indigo-600 font-medium mt-1 inline-block">ออกรหัส นศ. แล้ว</span>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Chart 1: Bar Chart Majors -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-800 text-sm mb-4">
+              <i class="fa-solid fa-chart-column text-blue-600 mr-1.5"></i> จำนวนผู้สมัครแยกตามสาขาวิชา
+            </h4>
+            <div class="h-64">
+              <canvas id="chartMajors"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Levels Ratio -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-800 text-sm mb-4">
+              <i class="fa-solid fa-chart-pie text-emerald-600 mr-1.5"></i> สัดส่วนระดับการศึกษา (ปวช. / ปวส.)
+            </h4>
+            <div class="h-64">
+              <canvas id="chartLevels"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 3: Referral Channels -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-800 text-sm mb-4">
+              <i class="fa-solid fa-bullhorn text-indigo-600 mr-1.5"></i> ช่องทางที่รู้จักวิทยาลัย
+            </h4>
+            <div class="h-64">
+              <canvas id="chartChannels"></canvas>
+            </div>
+          </div>
+
+          <!-- Table: Top Schools -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-800 text-sm mb-3">
+              <i class="fa-solid fa-school text-amber-600 mr-1.5"></i> 5 อันดับโรงเรียนเดิมที่สมัครมากที่สุด
+            </h4>
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-50 text-slate-500 border-b">
+                <tr>
+                  <th class="py-2 px-3">อันดับ</th>
+                  <th class="py-2 px-3">ชื่อโรงเรียนเดิม</th>
+                  <th class="py-2 px-3 text-right">จำนวน (คน)</th>
+                </tr>
+              </thead>
+              <tbody id="topSchoolsBody" class="divide-y divide-slate-100">
+                <tr><td colspan="3" class="text-center py-4 text-slate-400">ไม่มีข้อมูล</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: EXPORT STD02 (ศธ.02) -->
+      <!-- ========================================== -->
+      <section id="tabExport" class="hidden space-y-4">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 max-w-2xl mx-auto space-y-5">
+          <div class="border-b border-slate-200 pb-3">
+            <h3 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i>
+              <span>ส่งออกข้อมูลนักศึกษาเพื่อนำเข้าระบบ ศธ.02</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">
+              สร้างไฟล์ CSV (UTF-8 BOM สำหรับ Microsoft Excel) ตามมาตรฐานโครงสร้างฟิลด์ของสำนักงานคณะกรรมการการอาชีวศึกษา (สอศ.)
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ปีการศึกษา</label>
+              <select id="exportYear" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+                <option value="2568">2568</option>
+                <option value="2569">2569</option>
+                <option value="">ทั้งหมด</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ระดับชั้น</label>
+              <select id="exportLevel" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+                <option value="">ทุกระดับ (ปวช. + ปวส.)</option>
+                <option value="ปวช.">เฉพาะ ปวช.</option>
+                <option value="ปวส.">เฉพาะ ปวส.</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs text-emerald-800 space-y-1">
+            <span class="font-bold block">เงื่อนไขการส่งออก:</span>
+            <p>• เฉพาะนักศึกษาที่มีสถานะ <strong>"มอบตัวแล้ว"</strong> และได้รับการออกรหัสนักศึกษาแล้วเท่านั้น</p>
+            <p>• ข้อมูลจะถูกจัดรูปแบบให้อ่านค่าเป็นข้อความ (ไม่ตัดเลข 0 นำหน้า เช่น เลข ปชช. และเบอร์โทรศัพท์)</p>
+          </div>
+
+          <button onclick="handleExportStd02()" id="exportStd02Btn"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-sm">
+            <i class="fa-solid fa-cloud-arrow-down text-lg"></i>
+            <span>สร้างและดาวน์โหลดไฟล์ ศธ.02 (.CSV)</span>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Modal 1: ดูเอกสารและตรวจใบสมัคร (Review Modal) -->
+    <div id="reviewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
+        
+        <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-base" id="revModalTitle">ตรวจสอบเอกสารผู้สมัคร</h3>
+            <p class="text-xs text-slate-400" id="revModalSubtitle">-</p>
+          </div>
+          <button onclick="closeReviewModal()" class="text-slate-400 hover:text-white text-xl">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs md:text-sm">
+          
+          <!-- ตารางเอกสารแนบ 4 รายการ -->
+          <div>
+            <h4 class="font-bold text-slate-800 mb-2">เอกสารหลักฐานที่แนบ:</h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center" id="revDocsGrid">
+              <!-- Render via JS -->
+            </div>
+          </div>
+
+          <!-- เปลี่ยนสถานะ & บันทึกหมายเหตุ -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+            <h4 class="font-bold text-slate-800">ผลการตรวจสอบเอกสาร:</h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">เลือกสถานะใหม่ <span class="text-red-500">*</span></label>
+                <select id="revNewStatus" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold">
+                  <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+                  <option value="เอกสารไม่ครบ">เอกสารไม่ครบ (แจ้งให้ส่งแก้ไข)</option>
+                  <option value="ผ่านการคัดเลือก">ผ่านการคัดเลือก (ให้มอบตัว)</option>
+                  <option value="สละสิทธิ์">สละสิทธิ์ / ไม่ผ่าน</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">หมายเหตุ / แจ้งสิ่งที่ต้องแก้ไข (แสดงให้ผู้สมัครเห็น)</label>
+                <input type="text" id="revNotes" placeholder="เช่น รูปถ่ายไม่ชัดเจน, ขาดใบ ปพ.1 ด้านหลัง"
+                  class="w-full px-3 py-2 rounded-xl border border-slate-300">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+          <a id="revPdfLink" href="#" target="_blank"
+            class="text-blue-700 hover:text-blue-900 font-semibold text-xs flex items-center space-x-1">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>ดูใบสมัคร PDF</span>
+          </a>
+
+          <div class="flex space-x-2">
+            <button onclick="closeReviewModal()" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 text-xs font-semibold">
+              ยกเลิก
+            </button>
+            <button onclick="saveReviewStatus()" id="saveRevBtn"
+              class="px-5 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold shadow transition flex items-center space-x-1">
+              <i class="fa-solid fa-check"></i>
+              <span>บันทึกสถานะ</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Modal 2: ขั้นตอนการมอบตัว (Enrollment Modal) -->
+    <div id="enrollModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-slate-100 space-y-4">
+        
+        <div class="flex justify-between items-center border-b pb-3">
+          <div>
+            <h3 class="font-bold text-lg text-slate-900">บันทึกสัญญามอบตัวนักศึกษา</h3>
+            <p class="text-xs text-slate-500" id="enrollModalSubtitle">-</p>
+          </div>
+          <button onclick="closeEnrollModal()" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <form id="enrollForm" onsubmit="submitEnrollment(event)" class="space-y-3 text-xs md:text-sm">
+          <input type="hidden" id="enrollAppId">
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ชื่อ-สกุล ผู้ปกครอง <span class="text-red-500">*</span></label>
+              <input type="text" id="enrollGuardianName" required placeholder="เช่น นายประเสริฐ ใจดี"
+                class="w-full px-3 py-2 rounded-xl border border-slate-300">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">ความสัมพันธ์ <span class="text-red-500">*</span></label>
+              <select id="enrollGuardianRelation" required class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+                <option value="บิดา">บิดา</option>
+                <option value="มารดา">มารดา</option>
+                <option value="ผู้ปกครองตามกฎหมาย">ผู้ปกครองตามกฎหมาย</option>
+                <option value="ญาติ">ญาติ</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">เบอร์โทรผู้ปกครอง <span class="text-red-500">*</span></label>
+              <input type="tel" id="enrollGuardianPhone" required maxlength="10" placeholder="08xxxxxxxx"
+                class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">สถานะชำระเงิน <span class="text-red-500">*</span></label>
+              <select id="enrollPayment" required class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+                <option value="ชำระครบแล้ว">ชำระครบแล้ว</option>
+                <option value="ขอผ่อนผัน">ขอผ่อนผัน</option>
+                <option value="ทุนการศึกษา">ทุนการศึกษา</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">พยาน 1 (เจ้าหน้าที่รับมอบตัว)</label>
+              <input type="text" id="enrollWitness1" placeholder="ชื่อ-สกุล เจ้าหน้าที่"
+                class="w-full px-3 py-2 rounded-xl border border-slate-300">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">พยาน 2 (หัวหน้างาน)</label>
+              <input type="text" id="enrollWitness2" placeholder="ชื่อ-สกุล หัวหน้างาน"
+                class="w-full px-3 py-2 rounded-xl border border-slate-300">
+            </div>
+          </div>
+
+          <div class="bg-indigo-50 border border-indigo-200 p-3 rounded-xl text-xs text-indigo-900">
+            <span class="font-bold block">✨ การออกเลขประจำตัวนักศึกษา:</span>
+            <span>ระบบจะรันรหัสนักศึกษาให้อัตโนมัติตามปีการศึกษา ระดับชั้น และสาขาวิชา พร้อมสร้างสัญญามอบตัว PDF ทันที</span>
+          </div>
+
+          <div class="pt-2 flex justify-end space-x-2">
+            <button type="button" onclick="closeEnrollModal()" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold">
+              ยกเลิก
+            </button>
+            <button type="submit" id="submitEnrollBtn"
+              class="px-5 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold shadow flex items-center space-x-1">
+              <i class="fa-solid fa-graduation-cap"></i>
+              <span>ยืนยันมอบตัวและออกรหัส นศ.</span>
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Admin JavaScript Logic -->
+  <script>
+    let currentAdminUser = null;
+    let allApplicants = [];
+    let activeReviewApp = null;
+    let charts = {};
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // ลองตรวจสอบสิทธิ์ Google Account อัตโนมัติครั้งแรก
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.authenticated) {
+            setupAdminSession(res);
+          }
+        })
+        .verifyAdminAuth("");
+    });
+
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const pin = document.getElementById('adminPin').value.trim();
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader-spinner mr-2"></span> กำลังตรวจสอบ...';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-lock-open mr-2"></i> เข้าสู่ระบบ';
+          if (res.authenticated) {
+            setupAdminSession(res);
+          } else {
+            alert(res.message);
+          }
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-lock-open mr-2"></i> เข้าสู่ระบบ';
+          alert("เกิดข้อผิดพลาด: " + err.message);
+        })
+        .verifyAdminAuth(pin);
+    }
+
+    function setupAdminSession(auth) {
+      currentAdminUser = auth;
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminApp').classList.remove('hidden');
+      document.getElementById('authUserInfo').textContent = auth.userEmail || "เจ้าหน้าที่";
+      loadPublicConfigForAdmin();
+      loadApplicantsTable();
+    }
+
+    function loadPublicConfigForAdmin() {
+      google.script.run
+        .withSuccessHandler(cfg => {
+          const majorSelect = document.getElementById('filterMajor');
+          majorSelect.innerHTML = '<option value="">ทุกสาขาวิชา</option>';
+          if (cfg && cfg.majors) {
+            cfg.majors.forEach(m => {
+              const opt = document.createElement('option');
+              opt.value = m.name;
+              opt.textContent = `[${m.level}] ${m.name}`;
+              majorSelect.appendChild(opt);
+            });
+          }
+        })
+        .getPublicConfig();
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tabApplicants').classList.add('hidden');
+      document.getElementById('tabDashboard').classList.add('hidden');
+      document.getElementById('tabExport').classList.add('hidden');
+
+      document.getElementById('tabBtnApplicants').className = "px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-300 hover:bg-slate-800";
+      document.getElementById('tabBtnDashboard').className = "px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-300 hover:bg-slate-800";
+      document.getElementById('tabBtnExport').className = "px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-300 hover:bg-slate-800";
+
+      if (tab === 'applicants') {
+        document.getElementById('tabApplicants').classList.remove('hidden');
+        document.getElementById('tabBtnApplicants').className = "px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition bg-blue-600 text-white";
+      } else if (tab === 'dashboard') {
+        document.getElementById('tabDashboard').classList.remove('hidden');
+        document.getElementById('tabBtnDashboard').className = "px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition bg-blue-600 text-white";
+        loadDashboardData();
+      } else if (tab === 'export') {
+        document.getElementById('tabExport').classList.remove('hidden');
+        document.getElementById('tabBtnExport').className = "px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition bg-blue-600 text-white";
+      }
+    }
+
+    let searchTimer = null;
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        loadApplicantsTable();
+      }, 400);
+    }
+
+    function loadApplicantsTable() {
+      const filters = {
+        year: document.getElementById('filterYear').value,
+        level: document.getElementById('filterLevel').value,
+        major: document.getElementById('filterMajor').value,
+        status: document.getElementById('filterStatus').value,
+        search: document.getElementById('filterSearch').value.trim()
+      };
+
+      const tbody = document.getElementById('applicantTableBody');
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-400"><span class="loader-spinner mr-2"></span> กำลังดึงข้อมูล...</td></tr>';
+
+      google.script.run
+        .withSuccessHandler(data => {
+          allApplicants = data || [];
+          renderApplicantsTable(allApplicants);
+        })
+        .withFailureHandler(err => {
+          tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-red-500">ผิดพลาด: ${err.message}</td></tr>`;
+        })
+        .getAdminApplicants(filters);
+    }
+
+    function renderApplicantsTable(items) {
+      const tbody = document.getElementById('applicantTableBody');
+      document.getElementById('applicantCountText').textContent = `พบข้อมูล ${items.length} รายการ`;
+
+      if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-slate-400">ไม่พบข้อมูลผู้สมัครตามเงื่อนไขที่เลือก</td></tr>';
+        return;
+      }
+
+      let html = '';
+      items.forEach((app, idx) => {
+        let statusBadge = '';
+        if (app.status === 'ผ่านการคัดเลือก') statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold badge-passed">ผ่านการคัดเลือก</span>';
+        else if (app.status === 'มอบตัวแล้ว') statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold badge-enrolled">มอบตัวแล้ว</span>';
+        else if (app.status === 'เอกสารไม่ครบ') statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold badge-incomplete">เอกสารไม่ครบ</span>';
+        else statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold badge-pending">รอตรวจสอบ</span>';
+
+        const photoIcon = app.filePhotoUrl ? `<a href="${app.filePhotoUrl}" target="_blank" class="text-blue-600 hover:text-blue-800" title="รูปถ่าย"><i class="fa-solid fa-image"></i></a>` : '<span class="text-slate-300">-</span>';
+        const idCardIcon = app.fileIdCardUrl ? `<a href="${app.fileIdCardUrl}" target="_blank" class="text-emerald-600 hover:text-emerald-800" title="บัตร ปชช."><i class="fa-solid fa-id-card"></i></a>` : '<span class="text-slate-300">-</span>';
+        const transcriptIcon = app.fileTranscriptUrl ? `<a href="${app.fileTranscriptUrl}" target="_blank" class="text-amber-600 hover:text-amber-800" title="ใบ รบ."><i class="fa-solid fa-file-lines"></i></a>` : '<span class="text-slate-300">-</span>';
+
+        html += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-4 py-3 font-mono font-bold text-blue-900">${app.applicationId}</td>
+            <td class="px-4 py-3">
+              <span class="font-semibold text-slate-800 block">${app.fullName}</span>
+              <span class="text-[11px] text-slate-400 font-mono">${app.maskedId}</span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="font-medium text-slate-700 block">${app.majorName}</span>
+              <span class="text-[11px] text-slate-400">${app.educationLevel}</span>
+            </td>
+            <td class="px-4 py-3 font-mono">${app.gpa}</td>
+            <td class="px-4 py-3 font-mono">${app.phone}</td>
+            <td class="px-4 py-3 text-center space-x-2 text-base">
+              ${photoIcon} ${idCardIcon} ${transcriptIcon}
+            </td>
+            <td class="px-4 py-3 text-center">${statusBadge}</td>
+            <td class="px-4 py-3 text-center space-x-1">
+              <button onclick="openReviewModal('${app.applicationId}')" class="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold text-xs transition" title="ตรวจเอกสาร">
+                <i class="fa-solid fa-magnifying-glass-arrow-right"></i> ตรวจ
+              </button>
+              ${app.status === 'ผ่านการคัดเลือก' ? `
+                <button onclick="openEnrollModal('${app.applicationId}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-xs transition" title="มอบตัว">
+                  <i class="fa-solid fa-user-graduate"></i> มอบตัว
+                </button>
+              ` : ''}
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    // Modal ตรวจเอกสาร
+    function openReviewModal(appId) {
+      activeReviewApp = allApplicants.find(a => a.applicationId === appId);
+      if (!activeReviewApp) return;
+
+      document.getElementById('revModalTitle').textContent = `ตรวจสอบใบสมัคร: ${activeReviewApp.applicationId} (${activeReviewApp.fullName})`;
+      document.getElementById('revModalSubtitle').textContent = `ระดับ ${activeReviewApp.educationLevel} | สาขาวิชา: ${activeReviewApp.majorName}`;
+      document.getElementById('revNewStatus').value = activeReviewApp.status || "รอตรวจสอบ";
+      document.getElementById('revNotes').value = activeReviewApp.adminNotes || "";
+
+      // Render ปุ่มเปิดไฟล์ 4 ไฟล์
+      const docsGrid = document.getElementById('revDocsGrid');
+      docsGrid.innerHTML = `
+        <div class="p-3 border rounded-xl bg-slate-50">
+          <span class="block text-slate-500 text-xs mb-1">1. รูปถ่ายหน้าตรง</span>
+          ${activeReviewApp.filePhotoUrl ? `<a href="${activeReviewApp.filePhotoUrl}" target="_blank" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold inline-block hover:bg-blue-700">ดูรูปภาพ</a>` : '<span class="text-red-500">ไม่มีไฟล์</span>'}
+        </div>
+        <div class="p-3 border rounded-xl bg-slate-50">
+          <span class="block text-slate-500 text-xs mb-1">2. บัตรประชาชน</span>
+          ${activeReviewApp.fileIdCardUrl ? `<a href="${activeReviewApp.fileIdCardUrl}" target="_blank" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold inline-block hover:bg-blue-700">ดูเอกสาร</a>` : '<span class="text-red-500">ไม่มีไฟล์</span>'}
+        </div>
+        <div class="p-3 border rounded-xl bg-slate-50">
+          <span class="block text-slate-500 text-xs mb-1">3. ทะเบียนบ้าน</span>
+          ${activeReviewApp.fileHouseRegUrl ? `<a href="${activeReviewApp.fileHouseRegUrl}" target="_blank" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold inline-block hover:bg-blue-700">ดูเอกสาร</a>` : '<span class="text-red-500">ไม่มีไฟล์</span>'}
+        </div>
+        <div class="p-3 border rounded-xl bg-slate-50">
+          <span class="block text-slate-500 text-xs mb-1">4. ปพ.1 / รบ.</span>
+          ${activeReviewApp.fileTranscriptUrl ? `<a href="${activeReviewApp.fileTranscriptUrl}" target="_blank" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold inline-block hover:bg-blue-700">ดูเอกสาร</a>` : '<span class="text-red-500">ไม่มีไฟล์</span>'}
+        </div>
+      `;
+
+      const pdfLink = document.getElementById('revPdfLink');
+      if (activeReviewApp.pdfUrl) {
+        pdfLink.href = activeReviewApp.pdfUrl;
+        pdfLink.classList.remove('hidden');
+      } else {
+        pdfLink.classList.add('hidden');
+      }
+
+      document.getElementById('reviewModal').classList.remove('hidden');
+    }
+
+    function closeReviewModal() {
+      document.getElementById('reviewModal').classList.add('hidden');
+      activeReviewApp = null;
+    }
+
+    function saveReviewStatus() {
+      if (!activeReviewApp) return;
+      const newStatus = document.getElementById('revNewStatus').value;
+      const notes = document.getElementById('revNotes').value.trim();
+      const btn = document.getElementById('saveRevBtn');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader-spinner mr-1"></span> กำลังบันทึก...';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> บันทึกสถานะ';
+          alert(res.message);
+          closeReviewModal();
+          loadApplicantsTable();
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> บันทึกสถานะ';
+          alert("เกิดข้อผิดพลาด: " + err.message);
+        })
+        .updateApplicantStatus(activeReviewApp.applicationId, newStatus, notes, currentAdminUser.userEmail);
+    }
+
+    // Modal มอบตัว
+    function openEnrollModal(appId) {
+      const app = allApplicants.find(a => a.applicationId === appId);
+      if (!app) return;
+
+      document.getElementById('enrollAppId').value = app.applicationId;
+      document.getElementById('enrollModalSubtitle').textContent = `ผู้สมัคร: ${app.fullName} (${app.majorName})`;
+      document.getElementById('enrollForm').reset();
+      document.getElementById('enrollModal').classList.remove('hidden');
+    }
+
+    function closeEnrollModal() {
+      document.getElementById('enrollModal').classList.add('hidden');
+    }
+
+    function submitEnrollment(e) {
+      e.preventDefault();
+      const appId = document.getElementById('enrollAppId').value;
+      const btn = document.getElementById('submitEnrollBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader-spinner mr-1"></span> กำลังประมวลผลออกรหัส นศ...';
+
+      const enrollPayload = {
+        applicationId: appId,
+        guardianName: document.getElementById('enrollGuardianName').value.trim(),
+        guardianRelation: document.getElementById('enrollGuardianRelation').value,
+        guardianPhone: document.getElementById('enrollGuardianPhone').value.trim(),
+        paymentStatus: document.getElementById('enrollPayment').value,
+        witness1: document.getElementById('enrollWitness1').value.trim(),
+        witness2: document.getElementById('enrollWitness2').value.trim()
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-graduation-cap mr-1"></i> ยืนยันมอบตัวและออกรหัส นศ.';
+          alert(res.message);
+          closeEnrollModal();
+          loadApplicantsTable();
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-graduation-cap mr-1"></i> ยืนยันมอบตัวและออกรหัส นศ.';
+          alert("เกิดข้อผิดพลาดในการมอบตัว: " + err.message);
+        })
+        .enrollStudent(enrollPayload);
+    }
+
+    // โหลดสถิติ Chart.js
+    function loadDashboardData() {
+      const year = document.getElementById('filterYear').value || "2568";
+      google.script.run
+        .withSuccessHandler(stats => {
+          if (!stats) return;
+
+          document.getElementById('dashTotal').textContent = stats.summary.total;
+          document.getElementById('dashPending').textContent = stats.summary.pending;
+          document.getElementById('dashPassed').textContent = stats.summary.passed;
+          document.getElementById('dashEnrolled').textContent = stats.summary.enrolled;
+
+          renderCharts(stats);
+        })
+        .getDashboardStats(year);
+    }
+
+    function renderCharts(stats) {
+      // 1. Chart Majors Bar
+      if (charts.majors) charts.majors.destroy();
+      const majorLabels = Object.keys(stats.majors);
+      const majorCounts = Object.values(stats.majors);
+
+      charts.majors = new Chart(document.getElementById('chartMajors'), {
+        type: 'bar',
+        data: {
+          labels: majorLabels,
+          datasets: [{
+            label: 'จำนวนผู้สมัคร (คน)',
+            data: majorCounts,
+            backgroundColor: '#3b82f6',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+      });
+
+      // 2. Chart Levels Doughnut
+      if (charts.levels) charts.levels.destroy();
+      charts.levels = new Chart(document.getElementById('chartLevels'), {
+        type: 'doughnut',
+        data: {
+          labels: ['ปวช.', 'ปวส.'],
+          datasets: [{
+            data: [stats.levels['ปวช.'] || 0, stats.levels['ปวส.'] || 0],
+            backgroundColor: ['#10b981', '#6366f1']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+
+      // 3. Chart Channels Doughnut
+      if (charts.channels) charts.channels.destroy();
+      charts.channels = new Chart(document.getElementById('chartChannels'), {
+        type: 'pie',
+        data: {
+          labels: Object.keys(stats.channels),
+          datasets: [{
+            data: Object.values(stats.channels),
+            backgroundColor: ['#f59e0b', '#06b6d4', '#ec4899', '#8b5cf6', '#64748b', '#10b981']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+
+      // 4. Top Schools Table
+      const topSchoolsBody = document.getElementById('topSchoolsBody');
+      if (stats.topSchools && stats.topSchools.length > 0) {
+        topSchoolsBody.innerHTML = stats.topSchools.map((s, idx) => `
+          <tr>
+            <td class="py-2 px-3 font-bold text-slate-500">${idx + 1}</td>
+            <td class="py-2 px-3 font-medium text-slate-800">${s.name}</td>
+            <td class="py-2 px-3 text-right font-mono font-bold text-blue-900">${s.count}</td>
+          </tr>
+        `).join('');
+      } else {
+        topSchoolsBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-slate-400">ยังไม่มีข้อมูล</td></tr>';
+      }
+    }
+
+    // ส่งออกข้อมูล ศธ.02
+    function handleExportStd02() {
+      const year = document.getElementById('exportYear').value;
+      const level = document.getElementById('exportLevel').value;
+      const btn = document.getElementById('exportStd02Btn');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader-spinner mr-2"></span> กำลังสร้างไฟล์ CSV ศธ.02...';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down text-lg mr-2"></i> สร้างและดาวน์โหลดไฟล์ ศธ.02 (.CSV)';
+
+          if (res.success) {
+            // สร้างลิงก์ดาวน์โหลดไฟล์อัตโนมัติ
+            const a = document.createElement('a');
+            a.href = res.csvBase64;
+            a.download = res.fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            alert(`ส่งออกข้อมูลสำเร็จ! จำนวน ${res.totalRecords} รายการ`);
+          } else {
+            alert(res.message);
+          }
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down text-lg mr-2"></i> สร้างและดาวน์โหลดไฟล์ ศธ.02 (.CSV)';
+          alert("เกิดข้อผิดพลาดในการส่งออก: " + err.message);
+        })
+        .exportStd02Csv(year, level, "");
+    }
+  </script>
+</body>
+</html>

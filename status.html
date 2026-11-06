@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ตรวจสอบสถานะการสมัครเรียน - วิทยาลัยอาชีวศึกษา</title>
+  <?!= include('css'); ?>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-brand-900 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+      <a href="?page=register" class="flex items-center space-x-2 text-white hover:text-blue-200 transition">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span class="text-sm font-semibold">กลับหน้าสมัครเรียน</span>
+      </a>
+      <span class="text-xs md:text-sm font-medium text-blue-200">ระบบตรวจสอบสถานะผู้สมัคร</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-xl mx-auto px-4 py-8 md:py-12">
+
+    <!-- Search Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 bg-blue-100 text-blue-800 rounded-2xl flex items-center justify-center mx-auto text-xl shadow-sm">
+          <i class="fa-solid fa-id-card-clip"></i>
+        </div>
+        <h2 class="text-xl md:text-2xl font-bold text-slate-900">ตรวจสอบสถานะการสมัครเรียน</h2>
+        <p class="text-xs md:text-sm text-slate-500">กรุณากรอกเลขประจำตัวประชาชนและเบอร์โทรศัพท์เพื่อยืนยันตัวตน</p>
+      </div>
+
+      <form id="statusSearchForm" onsubmit="handleStatusSearch(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">
+            เลขประจำตัวประชาชน (13 หลัก) <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="searchId" required maxlength="13" placeholder="เลขบัตร ปชช. 13 หลัก"
+            oninput="this.value = this.value.replace(/\D/g, '')"
+            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-center font-mono tracking-widest text-base">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">
+            เบอร์โทรศัพท์มือถือ (4 หลักสุดท้าย) <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="searchPhone4" required maxlength="4" placeholder="4 ตัวท้ายเบอร์โทรที่ใช้สมัคร เช่น 5678"
+            oninput="this.value = this.value.replace(/\D/g, '')"
+            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-center font-mono tracking-widest text-base">
+          <span class="text-xs text-slate-400 mt-1 block text-center">มาตรการรักษาความปลอดภัย PDPA ยืนยันสองชั้น</span>
+        </div>
+
+        <button type="submit" id="searchBtn"
+          class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 px-4 rounded-xl shadow transition duration-200 flex items-center justify-center space-x-2 text-base">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span>ค้นหาข้อมูล</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Result Card -->
+    <div id="resultContainer" class="hidden mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div id="statusBanner" class="p-4 text-center font-bold text-base flex items-center justify-center space-x-2">
+        <span id="statusIcon"></span>
+        <span id="statusText">รอตรวจสอบ</span>
+      </div>
+
+      <div class="p-6 space-y-4 text-sm">
+        <div class="grid grid-cols-2 gap-2 border-b border-slate-100 pb-3">
+          <span class="text-slate-500">เลขที่ใบสมัคร:</span>
+          <span class="font-bold text-slate-800 text-right" id="resAppId">-</span>
+          <span class="text-slate-500">วันที่สมัคร:</span>
+          <span class="text-slate-800 text-right" id="resDate">-</span>
+          <span class="text-slate-500">ปีการศึกษา / รอบ:</span>
+          <span class="text-slate-800 text-right" id="resYearRound">-</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 border-b border-slate-100 pb-3">
+          <span class="text-slate-500">ชื่อ - สกุล (ปกปิด):</span>
+          <span class="font-semibold text-slate-800 text-right" id="resName">-</span>
+          <span class="text-slate-500">เลขบัตร ปชช. (ปกปิด):</span>
+          <span class="font-mono text-slate-800 text-right" id="resId">-</span>
+          <span class="text-slate-500">เบอร์โทรศัพท์ (ปกปิด):</span>
+          <span class="font-mono text-slate-800 text-right" id="resPhone">-</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 border-b border-slate-100 pb-3">
+          <span class="text-slate-500">ระดับการศึกษา:</span>
+          <span class="text-slate-800 text-right font-medium" id="resLevel">-</span>
+          <span class="text-slate-500">สาขาวิชา:</span>
+          <span class="font-bold text-blue-900 text-right" id="resMajor">-</span>
+        </div>
+
+        <!-- ข้อความหมายเหตุ / แจ้งเตือนจากเจ้าหน้าที่ -->
+        <div id="adminNotesBox" class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+          <span class="font-bold text-slate-700 block mb-1">
+            <i class="fa-solid fa-circle-info text-blue-600 mr-1"></i> ข้อความจากเจ้าหน้าที่:
+          </span>
+          <p id="resAdminNotes" class="text-slate-600 whitespace-pre-line text-xs md:text-sm">ไม่มีข้อความ</p>
+        </div>
+
+        <!-- ส่วนอัปโหลดเอกสารแก้ไขกรณี "เอกสารไม่ครบ" -->
+        <div id="resubmitSection" class="hidden p-4 rounded-xl bg-red-50 border border-red-200 space-y-3">
+          <div class="flex items-center space-x-2 text-red-700 font-bold text-sm">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>ส่งเอกสารแก้ไขเพิ่มเติม</span>
+          </div>
+          <p class="text-xs text-red-600">กรุณาเลือกประเภทเอกสารที่เจ้าหน้าที่แจ้งให้แก้ไข และอัปโหลดไฟล์ใหม่</p>
+
+          <form id="resubmitForm" onsubmit="handleResubmitFile(event)" class="space-y-3">
+            <select id="resubmitFileType" required
+              class="w-full px-3 py-2 rounded-lg border border-red-300 text-xs bg-white focus:ring-2 focus:ring-red-500">
+              <option value="">-- เลือกประเภทเอกสารที่ต้องการส่งใหม่ --</option>
+              <option value="photo">1. รูปถ่ายหน้าตรง (JPG/PNG)</option>
+              <option value="idcard">2. สำเนาบัตรประจำตัวประชาชน</option>
+              <option value="housereg">3. สำเนาทะเบียนบ้าน</option>
+              <option value="transcript">4. ใบแสดงผลการเรียน (รบ./ปพ.1)</option>
+            </select>
+
+            <input type="file" id="resubmitFileInput" required
+              class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-100 file:text-red-700 hover:file:bg-red-200">
+
+            <button type="submit" id="resubmitBtn"
+              class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-lg text-xs shadow transition flex items-center justify-center space-x-2">
+              <i class="fa-solid fa-arrow-up-from-bracket"></i>
+              <span>ส่งไฟล์เอกสารแก้ไข</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- ปุ่มดาวน์โหลดใบสมัคร PDF -->
+        <div id="downloadSection" class="pt-2">
+          <a id="resPdfLink" href="#" target="_blank"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-sm">
+            <i class="fa-solid fa-file-pdf text-lg"></i>
+            <span>ดาวน์โหลดใบสมัคร (PDF)</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let currentFoundApp = null;
+
+    function handleStatusSearch(e) {
+      e.preventDefault();
+      const id = document.getElementById('searchId').value.trim();
+      const phone4 = document.getElementById('searchPhone4').value.trim();
+
+      if (id.length !== 13 || phone4.length !== 4) {
+        alert("กรุณากรอกเลขบัตร ปชช. 13 หลัก และเบอร์โทร 4 ตัวท้ายให้ครบ");
+        return;
+      }
+
+      const btn = document.getElementById('searchBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader-spinner mr-2"></span> กำลังค้นหาข้อมูล...';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-magnifying-glass mr-2"></i> ค้นหาข้อมูล';
+
+          if (res.success) {
+            currentFoundApp = res;
+            displayStatusResult(res);
+          } else {
+            document.getElementById('resultContainer').classList.add('hidden');
+            alert(res.message);
+          }
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-magnifying-glass mr-2"></i> ค้นหาข้อมูล';
+          alert("เกิดข้อผิดพลาดในการค้นหา: " + err.message);
+        })
+        .checkApplicationStatus(id, phone4);
+    }
+
+    function displayStatusResult(data) {
+      const container = document.getElementById('resultContainer');
+      container.classList.remove('hidden');
+
+      document.getElementById('resAppId').textContent = data.applicationId;
+      document.getElementById('resDate').textContent = data.timestamp;
+      document.getElementById('resYearRound').textContent = `ปี ${data.academicYear} (${data.round})`;
+      document.getElementById('resName').textContent = data.maskedName;
+      document.getElementById('resId').textContent = data.maskedId;
+      document.getElementById('resPhone').textContent = data.maskedPhone;
+      document.getElementById('resLevel').textContent = data.educationLevel;
+      document.getElementById('resMajor').textContent = data.majorName;
+      document.getElementById('resAdminNotes').textContent = data.adminNotes || "อยู่ระหว่างรอเจ้าหน้าที่ฝ่ายรับสมัครตรวจสอบข้อมูล";
+
+      // กำหนดสี Banner ตามสถานะ
+      const banner = document.getElementById('statusBanner');
+      const icon = document.getElementById('statusIcon');
+      const text = document.getElementById('statusText');
+
+      if (data.status === "ผ่านการคัดเลือก") {
+        banner.className = "p-4 text-center font-bold text-base bg-emerald-100 text-emerald-800 border-b border-emerald-200 flex items-center justify-center space-x-2";
+        icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>';
+        text.textContent = "ผ่านการคัดเลือก (เตรียมมอบตัว)";
+      } else if (data.status === "มอบตัวแล้ว") {
+        banner.className = "p-4 text-center font-bold text-base bg-indigo-100 text-indigo-800 border-b border-indigo-200 flex items-center justify-center space-x-2";
+        icon.innerHTML = '<i class="fa-solid fa-user-graduate text-indigo-600 text-lg"></i>';
+        text.textContent = "มอบตัวแล้ว (เป็นนักศึกษา)";
+      } else if (data.status === "เอกสารไม่ครบ") {
+        banner.className = "p-4 text-center font-bold text-base bg-red-100 text-red-800 border-b border-red-200 flex items-center justify-center space-x-2";
+        icon.innerHTML = '<i class="fa-solid fa-circle-exclamation text-red-600 text-lg"></i>';
+        text.textContent = "เอกสารไม่ครบถ้วน (ต้องส่งแก้ไข)";
+      } else {
+        banner.className = "p-4 text-center font-bold text-base bg-amber-100 text-amber-800 border-b border-amber-200 flex items-center justify-center space-x-2";
+        icon.innerHTML = '<i class="fa-solid fa-clock text-amber-600 text-lg"></i>';
+        text.textContent = "รอตรวจสอบเอกสาร";
+      }
+
+      // แสดงหรือซ่อนส่วนส่งเอกสารซ่อม
+      const resubmitSec = document.getElementById('resubmitSection');
+      if (data.canResubmit) {
+        resubmitSec.classList.remove('hidden');
+      } else {
+        resubmitSec.classList.add('hidden');
+      }
+
+      // แสดงปุ่ม PDF
+      const pdfBtn = document.getElementById('resPdfLink');
+      if (data.pdfUrl) {
+        pdfBtn.href = data.pdfUrl;
+        document.getElementById('downloadSection').classList.remove('hidden');
+      } else {
+        document.getElementById('downloadSection').classList.add('hidden');
+      }
+    }
+
+    // อัปโหลดไฟล์แก้ไข
+    function handleResubmitFile(e) {
+      e.preventDefault();
+      if (!currentFoundApp) return;
+
+      const fileType = document.getElementById('resubmitFileType').value;
+      const fileInput = document.getElementById('resubmitFileInput');
+      const file = fileInput.files[0];
+
+      if (!fileType || !file) {
+        alert("กรุณาเลือกประเภทเอกสารและไฟล์ที่ต้องการอัปโหลด");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert("ขนาดไฟล์เกิน 5 MB");
+        return;
+      }
+
+      const btn = document.getElementById('resubmitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader-spinner mr-2"></span> กำลังอัปโหลดไฟล์...';
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const filePayload = {
+          name: file.name,
+          type: file.type,
+          data: evt.target.result
+        };
+
+        const nationalId = document.getElementById('searchId').value.trim();
+
+        google.script.run
+          .withSuccessHandler(res => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-arrow-up-from-bracket mr-2"></i> ส่งไฟล์เอกสารแก้ไข';
+            alert(res.message);
+            if (res.success) {
+              // รีโหลดสถานะใหม่
+              document.getElementById('searchBtn').click();
+            }
+          })
+          .withFailureHandler(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-arrow-up-from-bracket mr-2"></i> ส่งไฟล์เอกสารแก้ไข';
+            alert("เกิดข้อผิดพลาด: " + err.message);
+          })
+          .resubmitApplicantFile(currentFoundApp.applicationId, nationalId, fileType, filePayload);
+      };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>

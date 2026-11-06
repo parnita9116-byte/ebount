@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบรับสมัครเรียนออนไลน์ - วิทยาลัยอาชีวศึกษา</title>
+  <?!= include('css'); ?>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-brand-900 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-brand-900 shadow">
+          <i class="fa-solid fa-graduation-cap text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-base md:text-lg tracking-wide leading-tight" id="headerCollegeName">ระบบรับสมัครเรียนออนไลน์</h1>
+          <p class="text-xs text-blue-200" id="headerRoundInfo">กำลังโหลดข้อมูลการรับสมัคร...</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <a href="?page=status" class="text-xs md:text-sm bg-blue-800 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow-sm">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span>เช็กสถานะ</span>
+        </a>
+        <a href="?page=admin" class="text-xs md:text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg transition flex items-center space-x-1 shadow-sm">
+          <i class="fa-solid fa-user-shield"></i>
+          <span class="hidden sm:inline">เจ้าหน้าที่</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto px-4 py-6 md:py-10">
+
+    <!-- Status Alert (Closed Registration) -->
+    <div id="closedAlert" class="hidden bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm mb-6">
+      <div class="flex items-center">
+        <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xl mr-3"></i>
+        <div>
+          <h3 class="font-bold text-amber-800">ระบบปิดรับสมัครอยู่ในขณะนี้</h3>
+          <p class="text-sm text-amber-700">กรุณาติดตามกำหนดการเปิดรับสมัครในรอบถัดไปจากทางวิทยาลัย หรือไปที่เมนู 'ตรวจสอบสถานะ' เพื่อดูข้อมูลเดิม</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registration Card Form -->
+    <div id="formContainer" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      
+      <!-- Form Header -->
+      <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-6 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="inline-block bg-emerald-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full mb-2">
+              <i class="fa-solid fa-circle-check mr-1"></i> เปิดรับสมัครออนไลน์
+            </span>
+            <h2 class="text-xl md:text-2xl font-bold">ใบสมัครเข้าศึกษาต่อ ระดับ ปวช. / ปวส.</h2>
+            <p class="text-sm text-blue-200 mt-1">กรอกข้อมูลให้ครบถ้วนถูกต้องตามความเป็นจริง และแนบไฟล์เอกสารที่ชัดเจน</p>
+          </div>
+          <div class="hidden md:block text-right">
+            <span class="text-xs text-blue-200 block">ปีการศึกษา</span>
+            <span class="text-2xl font-bold text-white" id="badgeYear">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Body -->
+      <form id="admissionForm" class="p-6 md:p-8 space-y-8" onsubmit="handleFormSubmit(event)">
+
+        <!-- หมวดที่ 1: แผนกวิชาที่ต้องการสมัคร -->
+        <section class="space-y-4">
+          <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+            <span class="w-7 h-7 rounded-full bg-blue-100 text-brand-900 font-bold flex items-center justify-center text-sm">1</span>
+            <h3 class="text-base md:text-lg font-bold text-slate-800">ระดับชั้นและสาขาวิชาที่ต้องการสมัคร</h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                ระดับการศึกษา <span class="text-red-500">*</span>
+              </label>
+              <select id="educationLevel" name="educationLevel" required onchange="filterMajors()"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white transition text-sm">
+                <option value="">-- เลือกระดับชั้น --</option>
+                <option value="ปวช.">ปวช. (ประกาศนียบัตรวิชาชีพ - จบ ม.3)</option>
+                <option value="ปวส.">ปวส. (ประกาศนียบัตรวิชาชีพชั้นสูง - จบ ปวช./ม.6)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                สาขาวิชา <span class="text-red-500">*</span>
+              </label>
+              <select id="majorSelect" name="majorSelect" required onchange="handleMajorChange()"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white transition text-sm">
+                <option value="">-- กรุณาเลือกระดับชั้นก่อน --</option>
+              </select>
+              <input type="hidden" id="majorCode" name="majorCode">
+              <input type="hidden" id="majorName" name="majorName">
+              <p id="quotaNotice" class="text-xs text-slate-500 mt-1"></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- หมวดที่ 2: ข้อมูลส่วนตัวของผู้สมัคร -->
+        <section class="space-y-4">
+          <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+            <span class="w-7 h-7 rounded-full bg-blue-100 text-brand-900 font-bold flex items-center justify-center text-sm">2</span>
+            <h3 class="text-base md:text-lg font-bold text-slate-800">ข้อมูลส่วนตัวผู้สมัคร</h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                คำนำหน้าชื่อ <span class="text-red-500">*</span>
+              </label>
+              <select id="prefix" name="prefix" required
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-sm">
+                <option value="">-- เลือก --</option>
+                <option value="นาย">นาย</option>
+                <option value="นางสาว">นางสาว</option>
+                <option value="เด็กชาย">เด็กชาย</option>
+                <option value="เด็กหญิง">เด็กหญิง</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                ชื่อจริง <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="firstName" name="firstName" required placeholder="เช่น สมชาย"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm">
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                นามสกุล <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="lastName" name="lastName" required placeholder="เช่น ใจดี"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm">
+            </div>
+          </div>
+
+          <!-- เลขบัตร ปชช. พร้อม Checksum Validator -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                เลขประจำตัวประชาชน (13 หลัก) <span class="text-red-500">*</span>
+              </label>
+              <div class="relative">
+                <input type="text" id="nationalId" name="nationalId" required maxlength="13" placeholder="ระบุตัวเลข 13 หลักติดกัน"
+                  oninput="onNationalIdInput(this)"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm font-mono tracking-wider">
+                <span id="idValidationIcon" class="absolute right-3.5 top-3 text-sm"></span>
+              </div>
+              <p id="idValidationMsg" class="text-xs mt-1"></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                เบอร์โทรศัพท์มือถือ (10 หลัก) <span class="text-red-500">*</span>
+              </label>
+              <input type="tel" id="phone" name="phone" required maxlength="10" placeholder="เช่น 0812345678"
+                oninput="this.value = this.value.replace(/\D/g, '')"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm font-mono">
+              <span class="text-xs text-slate-400 mt-1 block">ใช้สำหรับยืนยันตัวตนในการตรวจสอบสถานะ</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                วันเดือนปีเกิด <span class="text-red-500">*</span>
+              </label>
+              <input type="date" id="birthdate" name="birthdate" required
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm">
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                เพศ <span class="text-red-500">*</span>
+              </label>
+              <select id="gender" name="gender" required
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-sm">
+                <option value="">-- เลือกเพศ --</option>
+                <option value="ชาย">ชาย</option>
+                <option value="หญิง">หญิง</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                อีเมล (สำหรับรับใบสมัครและแจ้งผล)
+              </label>
+              <input type="email" id="email" name="email" placeholder="example@email.com"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">
+              ที่อยู่ปัจจุบันตามทะเบียนบ้าน <span class="text-red-500">*</span>
+            </label>
+            <textarea id="currentAddress" name="currentAddress" rows="2" required placeholder="บ้านเลขที่ หมู่ที่ ซอย ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm"></textarea>
+          </div>
+        </section>
+
+        <!-- หมวดที่ 3: ข้อมูลการศึกษาเดิม -->
+        <section class="space-y-4">
+          <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+            <span class="w-7 h-7 rounded-full bg-blue-100 text-brand-900 font-bold flex items-center justify-center text-sm">3</span>
+            <h3 class="text-base md:text-lg font-bold text-slate-800">ประวัติการศึกษาเดิม</h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                โรงเรียนเดิมที่จบการศึกษา <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="prevSchool" name="prevSchool" required placeholder="เช่น โรงเรียนเทศบาล 1"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm">
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                จังหวัดของโรงเรียนเดิม <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="prevSchoolProvince" name="prevSchoolProvince" required placeholder="เช่น กรุงเทพมหานคร"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm">
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">
+                เกรดเฉลี่ยสะสม (GPAX) <span class="text-red-500">*</span>
+              </label>
+              <input type="number" step="0.01" min="0" max="4.00" id="gpa" name="gpa" required placeholder="เช่น 3.25"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-sm font-mono">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">
+              ช่องทางที่รู้จักวิทยาลัย
+            </label>
+            <select id="referralChannel" name="referralChannel"
+              class="w-full md:w-1/2 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-sm">
+              <option value="คณะครูแนะแนวไปประชาสัมพันธ์">คณะครูแนะแนวไปประชาสัมพันธ์ที่โรงเรียน</option>
+              <option value="Facebook / สื่อออนไลน์">Facebook / โซเชียลมีเดียของวิทยาลัย</option>
+              <option value="เพื่อน / รุ่นพี่ แนะนำ">เพื่อน / รุ่นพี่ หรือคนรู้จักแนะนำ</option>
+              <option value="ผู้ปกครองแนะนำ">ผู้ปกครองแนะนำ</option>
+              <option value="ป้ายประชาสัมพันธ์ / แผ่นพับ">ป้ายประชาสัมพันธ์ / แผ่นพับ</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- หมวดที่ 4: อัปโหลดเอกสารหลักฐาน (JPG, PNG, PDF <= 5MB) -->
+        <section class="space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+            <div class="flex items-center space-x-2">
+              <span class="w-7 h-7 rounded-full bg-blue-100 text-brand-900 font-bold flex items-center justify-center text-sm">4</span>
+              <h3 class="text-base md:text-lg font-bold text-slate-800">อัปโหลดเอกสารแนบ</h3>
+            </div>
+            <span class="text-xs text-slate-500">รองรับ JPG, PNG, PDF ขนาดไม่เกิน 5 MB ต่อไฟล์</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- ไฟล์ที่ 1: รูปถ่ายหน้าตรง -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+              <label class="block text-sm font-bold text-slate-700 mb-1">
+                1. รูปถ่ายหน้าตรงชุดนักเรียน (1.5 นิ้ว) <span class="text-red-500">*</span>
+              </label>
+              <p class="text-xs text-slate-500 mb-2">หน้าตรง ไม่สวมหมวก ไม่ใส่แว่นตาดำ</p>
+              <input type="file" id="filePhotoInput" accept="image/jpeg,image/png" required
+                onchange="handleFileUpload(this, 'filePhotoPreview', 'filePhotoData')"
+                class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+              <div id="filePhotoPreview" class="mt-2 text-xs text-slate-600"></div>
+              <input type="hidden" id="filePhotoData">
+            </div>
+
+            <!-- ไฟล์ที่ 2: สำเนาบัตรประชาชน -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+              <label class="block text-sm font-bold text-slate-700 mb-1">
+                2. สำเนาบัตรประจำตัวประชาชน <span class="text-red-500">*</span>
+              </label>
+              <p class="text-xs text-slate-500 mb-2">ลงชื่อสำเนาถูกต้องเรียบร้อย</p>
+              <input type="file" id="fileIdCardInput" accept="image/jpeg,image/png,application/pdf" required
+                onchange="handleFileUpload(this, 'fileIdCardPreview', 'fileIdCardData')"
+                class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+              <div id="fileIdCardPreview" class="mt-2 text-xs text-slate-600"></div>
+              <input type="hidden" id="fileIdCardData">
+            </div>
+
+            <!-- ไฟล์ที่ 3: สำเนาทะเบียนบ้าน -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+              <label class="block text-sm font-bold text-slate-700 mb-1">
+                3. สำเนาทะเบียนบ้านผู้สมัคร <span class="text-red-500">*</span>
+              </label>
+              <p class="text-xs text-slate-500 mb-2">หน้าที่มีชื่อผู้สมัครและหน้าบ้านเลขที่</p>
+              <input type="file" id="fileHouseRegInput" accept="image/jpeg,image/png,application/pdf" required
+                onchange="handleFileUpload(this, 'fileHouseRegPreview', 'fileHouseRegData')"
+                class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+              <div id="fileHouseRegPreview" class="mt-2 text-xs text-slate-600"></div>
+              <input type="hidden" id="fileHouseRegData">
+            </div>
+
+            <!-- ไฟล์ที่ 4: ใบแสดงผลการเรียน (รบ./ปพ.1) -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+              <label class="block text-sm font-bold text-slate-700 mb-1">
+                4. ใบแสดงผลการเรียน (รบ. หรือ ปพ.1) <span class="text-red-500">*</span>
+              </label>
+              <p class="text-xs text-slate-500 mb-2">ผลการเรียน 5 ภาคเรียน หรือสำเร็จการศึกษา</p>
+              <input type="file" id="fileTranscriptInput" accept="image/jpeg,image/png,application/pdf" required
+                onchange="handleFileUpload(this, 'fileTranscriptPreview', 'fileTranscriptData')"
+                class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+              <div id="fileTranscriptPreview" class="mt-2 text-xs text-slate-600"></div>
+              <input type="hidden" id="fileTranscriptData">
+            </div>
+
+          </div>
+        </section>
+
+        <!-- หมวดที่ 5: นโยบายความยินยอมคุ้มครองข้อมูลส่วนบุคคล (PDPA Consent) -->
+        <section class="bg-blue-50/70 border border-blue-200 rounded-2xl p-5 md:p-6 space-y-3">
+          <div class="flex items-center space-x-2 text-blue-900 font-bold">
+            <i class="fa-solid fa-shield-halved text-lg"></i>
+            <h4>การให้ความยินยอมตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)</h4>
+          </div>
+          <p class="text-xs md:text-sm text-slate-700 leading-relaxed">
+            ข้าพเจ้ายินยอมให้ทางวิทยาลัยจัดเก็บ รวบรวม ใช้ และประมวลผลข้อมูลส่วนบุคคลและเอกสารหลักฐานที่ได้แนบมานี้ เพื่อวัตถุประสงค์ในการสมัครเรียน การคัดเลือก การขึ้นทะเบียนนักศึกษา และการดำเนินงานด้านการศึกษาตามระเบียบของกระทรวงศึกษาธิการ โดยวิทยาลัยจะเก็บรักษาข้อมูลของท่านไว้เป็นความลับและจำกัดการเข้าถึงเฉพาะเจ้าหน้าที่ที่เกี่ยวข้องเท่านั้น
+          </p>
+          <div class="pt-2 flex items-start space-x-3">
+            <input type="checkbox" id="consentPdpa" name="consentPdpa" required
+              class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+            <label for="consentPdpa" class="text-sm font-semibold text-slate-900 cursor-pointer">
+              ข้าพเจ้าได้อ่านและเข้าใจข้อกำหนดข้างต้น และขอให้ความยินยอมในการประมวลผลข้อมูลส่วนบุคคล <span class="text-red-500">*</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Submit Button & Loader -->
+        <div class="pt-4 text-center">
+          <button type="submit" id="submitBtn"
+            class="w-full md:w-2/3 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition duration-200 text-base md:text-lg flex items-center justify-center space-x-2 mx-auto disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>ยืนยันและส่งใบสมัคร</span>
+          </button>
+          <p class="text-xs text-slate-500 mt-2">กรุณาตรวจสอบความถูกต้องของข้อมูลทั้งหมดก่อนกดส่ง</p>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl text-center space-y-4 border border-slate-100">
+        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-slate-900">ส่งใบสมัครเรียนสำเร็จ!</h3>
+        <p class="text-sm text-slate-600">ระบบได้บันทึกข้อมูลและส่งอีเมลยืนยันการรับสมัครเรียบร้อยแล้ว</p>
+
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-slate-500">เลขที่ใบสมัคร:</span>
+            <span class="font-bold text-blue-900 text-base" id="resAppId">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">ชื่อผู้สมัคร:</span>
+            <span class="font-semibold text-slate-800" id="resFullName">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">สาขาวิชา:</span>
+            <span class="font-semibold text-slate-800" id="resMajorName">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">เลขบัตร ปชช. (ปกปิด):</span>
+            <span class="font-mono text-slate-700" id="resMaskedId">-</span>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <a id="downloadPdfBtn" href="#" target="_blank"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-sm">
+            <i class="fa-solid fa-file-pdf text-lg"></i>
+            <span>ดาวน์โหลดใบสมัคร (PDF)</span>
+          </a>
+          <a href="?page=status"
+            class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center space-x-2 text-sm">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>ไปที่หน้าตรวจสอบสถานะ</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="text-center py-6 text-xs text-slate-400">
+    &copy; ระบบรับสมัครเรียนออนไลน์ วิทยาลัยอาชีวศึกษา | ขับเคลื่อนด้วย Google Workspace
+  </footer>
+
+  <!-- Frontend Client Script -->
+  <script>
+    let publicConfig = null;
+
+    // โหลดข้อมูลเริ่มต้นเมื่อเปิดหน้าเว็บ
+    window.addEventListener('DOMContentLoaded', () => {
+      google.script.run
+        .withSuccessHandler(onConfigLoaded)
+        .withFailureHandler(err => alert("เกิดข้อผิดพลาดในการโหลดการตั้งค่า: " + err.message))
+        .getPublicConfig();
+    });
+
+    function onConfigLoaded(config) {
+      publicConfig = config;
+      document.getElementById('headerCollegeName').textContent = config.collegeName || "วิทยาลัยอาชีวศึกษา";
+      document.getElementById('headerRoundInfo').textContent = `ปีการศึกษา ${config.academicYear} | ${config.round}`;
+      document.getElementById('badgeYear').textContent = config.academicYear;
+
+      if (!config.isOpen) {
+        document.getElementById('closedAlert').classList.remove('hidden');
+        document.getElementById('formContainer').classList.add('opacity-50', 'pointer-events-none');
+      }
+    }
+
+    // กรองสาขาวิชาตามระดับชั้น ปวช. / ปวส.
+    function filterMajors() {
+      const level = document.getElementById('educationLevel').value;
+      const select = document.getElementById('majorSelect');
+      select.innerHTML = '<option value="">-- เลือกสาขาวิชา --</option>';
+      document.getElementById('quotaNotice').textContent = '';
+
+      if (!publicConfig || !publicConfig.majors || !level) return;
+
+      const filtered = publicConfig.majors.filter(m => m.level === level);
+      filtered.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.code;
+        opt.textContent = `${m.name} (รหัส ${m.code})`;
+        opt.dataset.name = m.name;
+        opt.dataset.quota = m.quota;
+        select.appendChild(opt);
+      });
+    }
+
+    function handleMajorChange() {
+      const select = document.getElementById('majorSelect');
+      const selected = select.options[select.selectedIndex];
+      if (selected && selected.value) {
+        document.getElementById('majorCode').value = selected.value;
+        document.getElementById('majorName').value = selected.dataset.name;
+        document.getElementById('quotaNotice').textContent = `* จำนวนที่เปิดรับ: ${selected.dataset.quota || 0} คน`;
+      } else {
+        document.getElementById('majorCode').value = '';
+        document.getElementById('majorName').value = '';
+        document.getElementById('quotaNotice').textContent = '';
+      }
+    }
+
+    // ตรวจสอบ Checksum เลขบัตรประชาชน 13 หลัก
+    function validateIdChecksum(id) {
+      if (!id || id.length !== 13 || !/^\d{13}$/.test(id)) return false;
+      let sum = 0;
+      for (let i = 0; i < 12; i++) {
+        sum += parseInt(id.charAt(i), 10) * (13 - i);
+      }
+      const checkDigit = (11 - (sum % 11)) % 10;
+      return checkDigit === parseInt(id.charAt(12), 10);
+    }
+
+    function onNationalIdInput(input) {
+      input.value = input.value.replace(/\D/g, '');
+      const val = input.value;
+      const icon = document.getElementById('idValidationIcon');
+      const msg = document.getElementById('idValidationMsg');
+
+      if (val.length === 0) {
+        icon.innerHTML = '';
+        msg.textContent = '';
+        input.classList.remove('border-red-500', 'border-emerald-500');
+        return;
+      }
+
+      if (val.length === 13) {
+        if (validateIdChecksum(val)) {
+          icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+          msg.textContent = 'เลขบัตรประชาชนถูกต้อง';
+          msg.className = 'text-xs mt-1 text-emerald-600 font-medium';
+          input.classList.remove('border-red-500');
+          input.classList.add('border-emerald-500');
+        } else {
+          icon.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+          msg.textContent = 'เลขประจำตัวประชาชนไม่ถูกต้องตามสูตรคำนวณ (กรุณาตรวจทาน)';
+          msg.className = 'text-xs mt-1 text-red-600 font-medium';
+          input.classList.remove('border-emerald-500');
+          input.classList.add('border-red-500');
+        }
+      } else {
+        icon.innerHTML = '';
+        msg.textContent = `ระบุแล้ว ${val.length}/13 หลัก`;
+        msg.className = 'text-xs mt-1 text-slate-400';
+        input.classList.remove('border-emerald-500', 'border-red-500');
+      }
+    }
+
+    // แปลงไฟล์เป็น Base64 และตรวจขนาดไม่เกิน 5MB
+    function handleFileUpload(input, previewId, hiddenInputId) {
+      const file = input.files[0];
+      const preview = document.getElementById(previewId);
+      const hidden = document.getElementById(hiddenInputId);
+
+      if (!file) {
+        preview.innerHTML = '';
+        hidden.value = '';
+        return;
+      }
+
+      // จำกัดขนาด 5MB (5 * 1024 * 1024 bytes)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("ขนาดไฟล์เกิน 5 MB กรุณาเลือกไฟล์ใหม่หรือย่อขนาดภาพ");
+        input.value = '';
+        preview.innerHTML = '<span class="text-red-500">ไฟล์เกิน 5MB</span>';
+        hidden.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result;
+        hidden.value = JSON.stringify({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: base64Data
+        });
+
+        if (file.type.startsWith('image/')) {
+          preview.innerHTML = `<span class="text-emerald-600 font-medium"><i class="fa-solid fa-check-circle mr-1"></i> โหลดรูปภาพสำเร็จ (${(file.size / 1024).toFixed(0)} KB)</span>`;
+        } else {
+          preview.innerHTML = `<span class="text-blue-600 font-medium"><i class="fa-solid fa-file-pdf mr-1"></i> ไฟล์เอกสาร PDF: ${file.name}</span>`;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ส่งฟอร์มสมัคร
+    function handleFormSubmit(e) {
+      e.preventDefault();
+
+      const nationalId = document.getElementById('nationalId').value.trim();
+      if (!validateIdChecksum(nationalId)) {
+        alert("เลขประจำตัวประชาชน 13 หลักไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง");
+        document.getElementById('nationalId').focus();
+        return;
+      }
+
+      const phone = document.getElementById('phone').value.trim();
+      if (phone.length !== 10 || !/^0[689]/.test(phone)) {
+        alert("เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลักขึ้นต้นด้วย 06, 08 หรือ 09");
+        document.getElementById('phone').focus();
+        return;
+      }
+
+      // ตรวจไฟล์ครบทั้ง 4 ไฟล์
+      const photo = document.getElementById('filePhotoData').value;
+      const idcard = document.getElementById('fileIdCardData').value;
+      const housereg = document.getElementById('fileHouseRegData').value;
+      const transcript = document.getElementById('fileTranscriptData').value;
+
+      if (!photo || !idcard || !housereg || !transcript) {
+        alert("กรุณาอัปโหลดเอกสารหลักฐานให้ครบทั้ง 4 รายการ");
+        return;
+      }
+
+      // ปิดปุ่มและแสดง Loader
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader-spinner mr-2"></span> กำลังบันทึกข้อมูลและอัปโหลดไฟล์...';
+
+      const formData = {
+        educationLevel: document.getElementById('educationLevel').value,
+        majorCode: document.getElementById('majorCode').value,
+        majorName: document.getElementById('majorName').value,
+        prefix: document.getElementById('prefix').value,
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        nationalId: nationalId,
+        phone: phone,
+        birthdate: document.getElementById('birthdate').value,
+        gender: document.getElementById('gender').value,
+        email: document.getElementById('email').value.trim(),
+        currentAddress: document.getElementById('currentAddress').value.trim(),
+        prevSchool: document.getElementById('prevSchool').value.trim(),
+        prevSchoolProvince: document.getElementById('prevSchoolProvince').value.trim(),
+        gpa: document.getElementById('gpa').value,
+        referralChannel: document.getElementById('referralChannel').value,
+        consentPdpa: document.getElementById('consentPdpa').checked,
+        filePhoto: JSON.parse(photo),
+        fileIdCard: JSON.parse(idcard),
+        fileHouseReg: JSON.parse(housereg),
+        fileTranscript: JSON.parse(transcript)
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> ยืนยันและส่งใบสมัคร';
+
+          if (res.success) {
+            document.getElementById('resAppId').textContent = res.applicationId;
+            document.getElementById('resFullName').textContent = res.fullName;
+            document.getElementById('resMajorName').textContent = res.majorName;
+            document.getElementById('resMaskedId').textContent = res.maskedId;
+            
+            if (res.pdfUrl) {
+              const pdfLink = document.getElementById('downloadPdfBtn');
+              pdfLink.href = res.pdfUrl;
+              pdfLink.classList.remove('hidden');
+            } else {
+              document.getElementById('downloadPdfBtn').classList.add('hidden');
+            }
+
+            document.getElementById('successModal').classList.remove('hidden');
+            document.getElementById('admissionForm').reset();
+          } else {
+            alert("ไม่สามารถส่งใบสมัครได้: " + res.message);
+          }
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> ยืนยันและส่งใบสมัคร';
+          alert("เกิดข้อผิดพลาดในการเชื่อมต่อ: " + err.message);
+        })
+        .submitApplication(formData);
+    }
+  </script>
+</body>
+</html>
